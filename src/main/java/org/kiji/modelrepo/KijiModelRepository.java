@@ -74,6 +74,8 @@ public final class KijiModelRepository implements Closeable {
   private static final String REPO_VERSION_KEY = "kiji.model_repo.version";
   private static final String REPO_BASE_URL_KEY = "kiji.model_repo.base_repo_url";
 
+  private static final String REPO_LAYOUT_VERSION_PREFIX="MR-";
+
   private static final Logger LOG = LoggerFactory.getLogger(KijiModelRepository.class);
 
   static {
@@ -81,15 +83,21 @@ public final class KijiModelRepository implements Closeable {
      * Go through all the JSON files in org/kiji/modelrepo/layouts and store each
      */
     try {
-      URL u = KijiModelRepository.class.getResource(TABLE_LAYOUT_BASE_PKG);
-      File f = new File(u.toURI());
-      for (File layoutFile : f.listFiles(new JsonFileFilter())) {
-        KijiTableLayout layout =
-            KijiTableLayout.createFromEffectiveJson(new FileInputStream(layoutFile));
-        int layoutId = Integer.parseInt(layout.getDesc().getLayoutId());
-        if (layoutId > mLatestLayoutVersion) {
-          mLatestLayoutVersion = layoutId;
-          mLatestLayout = layout;
+      final URL packageUrl = KijiModelRepository.class.getResource(TABLE_LAYOUT_BASE_PKG);
+      if (packageUrl != null) {
+        final File fParent = new File(packageUrl.toURI());
+        for (File layoutFile : fParent.listFiles(new JsonFileFilter())) {
+          final FileInputStream fis = new FileInputStream(layoutFile);
+          final KijiTableLayout layout =
+              KijiTableLayout.createFromEffectiveJson(fis);
+          String tableLayoutId = layout.getDesc().getLayoutId();
+          String modelRepoLayoutVersion = tableLayoutId
+              .substring(REPO_LAYOUT_VERSION_PREFIX.length());
+          final int modelRepoLayoutId = Integer.parseInt(modelRepoLayoutVersion);
+          if (modelRepoLayoutId > mLatestLayoutVersion) {
+            mLatestLayoutVersion = modelRepoLayoutId;
+            mLatestLayout = layout;
+          }
         }
       }
     } catch (IOException ioe) {
@@ -179,6 +187,7 @@ public final class KijiModelRepository implements Closeable {
     if (!kiji.getTableNames().contains(MODEL_REPO_TABLE_NAME)) {
       TableLayoutDesc tableLayout = mLatestLayout.getDesc();
       tableLayout.setReferenceLayout(null);
+      tableLayout.setName(MODEL_REPO_TABLE_NAME);
       kiji.createTable(tableLayout);
 
       // Set the version
@@ -237,12 +246,14 @@ public final class KijiModelRepository implements Closeable {
     if (mLatestLayout == null) {
       throw new IOException("Unable to upgrade. Latest layout information is null.");
     }
-    // Apply the latest layout and set the reference layout to the previous version.
-    TableLayoutDesc newLayoutDesc = mLatestLayout.getDesc();
-
-    newLayoutDesc.setReferenceLayout(Integer.toString(fromVersion));
-    kiji.modifyTableLayout(newLayoutDesc);
-    writeLatestVersion(kiji.getMetaTable());
+    if(fromVersion != mLatestLayoutVersion) {
+      // Apply the latest layout and set the reference layout to the previous known version.
+      TableLayoutDesc newLayoutDesc = mLatestLayout.getDesc();
+      newLayoutDesc.setName(MODEL_REPO_TABLE_NAME);
+      newLayoutDesc.setReferenceLayout(REPO_LAYOUT_VERSION_PREFIX + Integer.toString(fromVersion));
+      kiji.modifyTableLayout(newLayoutDesc);
+      writeLatestVersion(kiji.getMetaTable());
+    }
   }
 
   /**
@@ -267,6 +278,7 @@ public final class KijiModelRepository implements Closeable {
 
   /**
    * Removes the model repository.
+   *
    * @param kiji is the instance in which the repo resides.
    */
   public static void remove(Kiji kiji) {
@@ -279,13 +291,25 @@ public final class KijiModelRepository implements Closeable {
    * @param kiji is the Kiji instance in which the model repository resides.
    * @return whether or not the model repository table is valid.
    * @throws IOException if there is an exception reading any information from the Kiji
-   *     instance or the metadata table.
+   *         instance or the metadata table.
    */
   private static boolean isModelRepoTable(Kiji kiji) throws IOException {
     // Checks the instance metadata table for the model repo keys and that the kiji instance has
     // a model repository.
-    return kiji.getMetaTable().getValue(MODEL_REPO_TABLE_NAME, REPO_BASE_URL_KEY) != null
-        && kiji.getMetaTable().getValue(MODEL_REPO_TABLE_NAME, REPO_VERSION_KEY) != null
-        && kiji.getTableNames().contains(MODEL_REPO_TABLE_NAME);
+    boolean isModelRepo = kiji.getTableNames().contains(MODEL_REPO_TABLE_NAME);
+
+    try
+    {
+      kiji.getMetaTable().getValue(MODEL_REPO_TABLE_NAME, REPO_BASE_URL_KEY);
+      kiji.getMetaTable().getValue(MODEL_REPO_TABLE_NAME, REPO_VERSION_KEY);
+      isModelRepo = isModelRepo && true;
+    } catch(IOException ioe) {
+      // Means that the key doesn't exist (or something else bad happened).
+      // TODO: Once SCHEMA-507 is patched to return null on getValue() not existing, then
+      // we can change this OR if an exists() method is added on the MetaTable intf.
+      isModelRepo = false;
+    }
+
+    return isModelRepo;
   }
 }

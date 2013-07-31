@@ -18,7 +18,7 @@
  */
 {
   "name" : "model_repo",
-  "layout_id" : "1",
+  "layout_id" : "MR-1",
   "version" : "layout-1.2",
   "description" : "Model metadata.",
   "keys_format" : {

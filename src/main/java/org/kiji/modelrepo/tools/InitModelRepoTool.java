@@ -37,7 +37,7 @@ import org.kiji.schema.tools.BaseTool;
  */
 public final class InitModelRepoTool extends BaseTool implements KijiModelRepoTool {
 
-  @Flag(name = "instance", usage = "Name of the KIJI instance housing the model repository.")
+  @Flag(name = "kiji", usage = "Name of the KIJI instance housing the model repository.")
   private String mInstanceName = null;
 
   private KijiURI mInstanceURI = null;
@@ -82,6 +82,7 @@ public final class InitModelRepoTool extends BaseTool implements KijiModelRepoTo
     URI parsedURI = URI.create(baseURI);
     Kiji kijiInstance = Kiji.Factory.open(mInstanceURI);
     KijiModelRepository.install(kijiInstance, parsedURI);
+    kijiInstance.release();
     return SUCCESS;
   }
 }
