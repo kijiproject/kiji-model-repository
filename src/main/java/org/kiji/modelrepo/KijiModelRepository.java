@@ -32,11 +32,16 @@ import java.nio.ByteBuffer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import org.kiji.express.avro.AvroModelDefinition;
+import org.kiji.express.avro.AvroModelEnvironment;
+import org.kiji.schema.AtomicKijiPutter;
+import org.kiji.schema.EntityId;
 import org.kiji.schema.Kiji;
 import org.kiji.schema.KijiMetaTable;
 import org.kiji.schema.KijiTable;
 import org.kiji.schema.avro.TableLayoutDesc;
 import org.kiji.schema.layout.KijiTableLayout;
+import org.kiji.schema.util.ProtocolVersion;
 
 /**
  *
@@ -287,5 +292,41 @@ public final class KijiModelRepository implements Closeable {
     return kiji.getMetaTable().getValue(MODEL_REPO_TABLE_NAME, REPO_BASE_URL_KEY) != null
         && kiji.getMetaTable().getValue(MODEL_REPO_TABLE_NAME, REPO_VERSION_KEY) != null
         && kiji.getTableNames().contains(MODEL_REPO_TABLE_NAME);
+  }
+
+  /**
+   * Deploy a new model lifecycle or update an existing model lifecycle.
+   *
+   * @param name of model lifecycle
+   * @param version of model lifecycle
+   * @param definition of model lifecycle
+   * @param environment of model lifecycle
+   * @param location URL of model lifecycle
+   * @param productionReady is true iff model lifecycle is ready for scoring
+   * @param message the latest update message of the model lifecycle
+   * @throws IOException if model lifecycle cannot be written to model repository table.
+   */
+  protected void deployModelLifecycle(
+      final String name,
+      final ProtocolVersion version,
+      final AvroModelDefinition definition,
+      final AvroModelEnvironment environment,
+      final String location,
+      final boolean productionReady,
+      final String message
+      ) throws IOException {
+    final AtomicKijiPutter putter = mKijiTable.getWriterFactory().openAtomicPutter();
+    final EntityId eid = mKijiTable.getEntityId(name, version.toCanonicalString());
+    try {
+      putter.begin(eid);
+      putter.put("model", "definition", definition);
+      putter.put("model", "environment", environment);
+      putter.put("model", "location", location);
+      putter.put("model", "production_ready", productionReady);
+      putter.put("model", "message", message);
+      putter.commit();
+    } finally {
+      putter.close();
+    }
   }
 }
