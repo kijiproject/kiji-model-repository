@@ -20,8 +20,6 @@
 package org.kiji.modelrepo;
 
 import java.io.Closeable;
-import java.io.File;
-import java.io.FilenameFilter;
 import java.io.IOException;
 import java.net.URI;
 import java.nio.ByteBuffer;
@@ -75,9 +73,11 @@ public final class KijiModelRepository implements Closeable {
 
   private static final Logger LOG = LoggerFactory.getLogger(KijiModelRepository.class);
 
-  /** The latest layout file. This will have to be updated when we make a change to the
+  /**
+   * The latest layout file. This will have to be updated when we make a change to the
    * model repository table layout. Was hoping to inspect the contents of
-   * org.kiji.modelrepo.layouts/*.json but doing this in a jar doesn't seem very straightforward. */
+   * org.kiji.modelrepo.layouts/*.json but doing this in a jar doesn't seem very straightforward.
+   **/
   private static final String LATEST_LAYOUT_FILE=
       TABLE_LAYOUT_BASE_PKG + "/model-repo-layout-MR-1.json";
 
@@ -94,18 +94,6 @@ public final class KijiModelRepository implements Closeable {
           .substring(REPO_LAYOUT_VERSION_PREFIX.length()));
     } catch (IOException ioe) {
       LOG.error("Error opening file ", ioe);
-    }
-  }
-
-  /**
-   * Simple FileFilter that filters for JSON files.
-   *
-   */
-  private static class JsonFileFilter implements FilenameFilter {
-
-    @Override
-    public boolean accept(File dir, String name) {
-      return name.endsWith(".json");
     }
   }
 
@@ -297,7 +285,12 @@ public final class KijiModelRepository implements Closeable {
       // Means that the key doesn't exist (or something else bad happened).
       // TODO: Once SCHEMA-507 is patched to return null on getValue() not existing, then
       // we can change this OR if an exists() method is added on the MetaTable intf.
-      return false;
+      if (ioe.getMessage() != null
+          && ioe.getMessage().contains("Could not find any values associated with table")) {
+        return false;
+      } else {
+        throw ioe;
+      }
     }
   }
 }
