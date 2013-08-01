@@ -246,7 +246,7 @@ public final class KijiModelRepository implements Closeable {
     if (mLatestLayout == null) {
       throw new IOException("Unable to upgrade. Latest layout information is null.");
     }
-    if(fromVersion != mLatestLayoutVersion) {
+    if (fromVersion != mLatestLayoutVersion) {
       // Apply the latest layout and set the reference layout to the previous known version.
       TableLayoutDesc newLayoutDesc = mLatestLayout.getDesc();
       newLayoutDesc.setName(MODEL_REPO_TABLE_NAME);
@@ -298,12 +298,11 @@ public final class KijiModelRepository implements Closeable {
     // a model repository.
     boolean isModelRepo = kiji.getTableNames().contains(MODEL_REPO_TABLE_NAME);
 
-    try
-    {
+    try {
       kiji.getMetaTable().getValue(MODEL_REPO_TABLE_NAME, REPO_BASE_URL_KEY);
       kiji.getMetaTable().getValue(MODEL_REPO_TABLE_NAME, REPO_VERSION_KEY);
       isModelRepo = isModelRepo && true;
-    } catch(IOException ioe) {
+    } catch (IOException ioe) {
       // Means that the key doesn't exist (or something else bad happened).
       // TODO: Once SCHEMA-507 is patched to return null on getValue() not existing, then
       // we can change this OR if an exists() method is added on the MetaTable intf.

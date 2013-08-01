@@ -89,14 +89,14 @@
     <pluginManagement>
       <plugins>
         <plugin>
-          <!-- must supply build-resources module with checkstyle/checkstyle.xml
-            and suppressions.xml to use this -->
           <groupId>org.apache.maven.plugins</groupId>
           <artifactId>maven-checkstyle-plugin</artifactId>
+          <configuration>
+            <suppressionsLocation>file://src/main/checkstyle/suppressions.xml</suppressionsLocation>
+            <suppressionsFile>file://src/main/checkstyle/suppressions.xml</suppressionsFile>
+          </configuration>
         </plugin>
         <plugin>
-          <!-- must supply build-resources module with findbugs/includeFilter.xml
-            and excludeFilter.xml to use this -->
           <groupId>org.codehaus.mojo</groupId>
           <artifactId>findbugs-maven-plugin</artifactId>
         </plugin>
