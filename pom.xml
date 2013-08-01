@@ -76,14 +76,14 @@
         </exclusion>
       </exclusions>
     </dependency>
-    
+
     <dependency>
       <groupId>org.kiji.schema</groupId>
       <artifactId>kiji-schema</artifactId>
       <version>${kiji.schema.version}</version>
       <type>test-jar</type>
       <scope>test</scope>
-    </dependency>    
+    </dependency>
   </dependencies>
   <build>
     <pluginManagement>
@@ -91,10 +91,6 @@
         <plugin>
           <groupId>org.apache.maven.plugins</groupId>
           <artifactId>maven-checkstyle-plugin</artifactId>
-          <configuration>
-            <suppressionsLocation>file://src/main/checkstyle/suppressions.xml</suppressionsLocation>
-            <suppressionsFile>file://src/main/checkstyle/suppressions.xml</suppressionsFile>
-          </configuration>
         </plugin>
         <plugin>
           <groupId>org.codehaus.mojo</groupId>
