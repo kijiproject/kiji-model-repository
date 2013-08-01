@@ -21,12 +21,9 @@ package org.kiji.modelrepo;
 
 import java.io.Closeable;
 import java.io.File;
-import java.io.FileInputStream;
 import java.io.FilenameFilter;
 import java.io.IOException;
 import java.net.URI;
-import java.net.URISyntaxException;
-import java.net.URL;
 import java.nio.ByteBuffer;
 
 import org.slf4j.Logger;
@@ -68,7 +65,7 @@ public final class KijiModelRepository implements Closeable {
    **/
   private static int mLatestLayoutVersion = 0;
 
-  /** The latest layout (by id) org.kiji.modelrepo.layouts/*.json. **/
+  /** The latest layout. **/
   private static KijiTableLayout mLatestLayout = null;
 
   private static final String REPO_VERSION_KEY = "kiji.model_repo.version";
@@ -78,32 +75,25 @@ public final class KijiModelRepository implements Closeable {
 
   private static final Logger LOG = LoggerFactory.getLogger(KijiModelRepository.class);
 
+  /** The latest layout file. This will have to be updated when we make a change to the
+   * model repository table layout. Was hoping to inspect the contents of
+   * org.kiji.modelrepo.layouts/*.json but doing this in a jar doesn't seem very straightforward. */
+  private static final String LATEST_LAYOUT_FILE=
+      TABLE_LAYOUT_BASE_PKG + "/model-repo-layout-MR-1.json";
+
   static {
     /*
      * Go through all the JSON files in org/kiji/modelrepo/layouts and store each
      */
     try {
-      final URL packageUrl = KijiModelRepository.class.getResource(TABLE_LAYOUT_BASE_PKG);
-      if (packageUrl != null) {
-        final File fParent = new File(packageUrl.toURI());
-        for (File layoutFile : fParent.listFiles(new JsonFileFilter())) {
-          final FileInputStream fis = new FileInputStream(layoutFile);
-          final KijiTableLayout layout =
-              KijiTableLayout.createFromEffectiveJson(fis);
-          String tableLayoutId = layout.getDesc().getLayoutId();
-          String modelRepoLayoutVersion = tableLayoutId
-              .substring(REPO_LAYOUT_VERSION_PREFIX.length());
-          final int modelRepoLayoutId = Integer.parseInt(modelRepoLayoutVersion);
-          if (modelRepoLayoutId > mLatestLayoutVersion) {
-            mLatestLayoutVersion = modelRepoLayoutId;
-            mLatestLayout = layout;
-          }
-        }
-      }
+      mLatestLayout = KijiTableLayout
+          .createFromEffectiveJson(KijiModelRepository
+              .class.getResourceAsStream(LATEST_LAYOUT_FILE));
+      String tableLayoutId = mLatestLayout.getDesc().getLayoutId();
+      mLatestLayoutVersion = Integer.parseInt(tableLayoutId
+          .substring(REPO_LAYOUT_VERSION_PREFIX.length()));
     } catch (IOException ioe) {
       LOG.error("Error opening file ", ioe);
-    } catch (URISyntaxException use) {
-      LOG.error("Error opening file ", use);
     }
   }
 
