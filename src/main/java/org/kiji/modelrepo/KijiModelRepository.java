@@ -74,7 +74,7 @@ public final class KijiModelRepository implements Closeable {
   private static final String REPO_VERSION_KEY = "kiji.model_repo.version";
   private static final String REPO_BASE_URL_KEY = "kiji.model_repo.base_repo_url";
 
-  private static final String REPO_LAYOUT_VERSION_PREFIX="MR-";
+  private static final String REPO_LAYOUT_VERSION_PREFIX = "MR-";
 
   private static final Logger LOG = LoggerFactory.getLogger(KijiModelRepository.class);
 
@@ -296,19 +296,18 @@ public final class KijiModelRepository implements Closeable {
   private static boolean isModelRepoTable(Kiji kiji) throws IOException {
     // Checks the instance metadata table for the model repo keys and that the kiji instance has
     // a model repository.
-    boolean isModelRepo = kiji.getTableNames().contains(MODEL_REPO_TABLE_NAME);
-
+    if (!kiji.getTableNames().contains(MODEL_REPO_TABLE_NAME)) {
+      return false;
+    }
     try {
       kiji.getMetaTable().getValue(MODEL_REPO_TABLE_NAME, REPO_BASE_URL_KEY);
       kiji.getMetaTable().getValue(MODEL_REPO_TABLE_NAME, REPO_VERSION_KEY);
-      isModelRepo = isModelRepo && true;
+      return true;
     } catch (IOException ioe) {
       // Means that the key doesn't exist (or something else bad happened).
       // TODO: Once SCHEMA-507 is patched to return null on getValue() not existing, then
       // we can change this OR if an exists() method is added on the MetaTable intf.
-      isModelRepo = false;
+      return false;
     }
-
-    return isModelRepo;
   }
 }
