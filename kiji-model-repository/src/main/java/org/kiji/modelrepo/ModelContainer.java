@@ -48,6 +48,7 @@ import org.kiji.schema.KijiRowData;
 import org.kiji.schema.KijiURI;
 import org.kiji.schema.util.ProtocolVersion;
 import org.kiji.scoring.KijiFreshnessManager;
+import org.kiji.scoring.ScoreFunction;
 import org.kiji.scoring.lib.server.ScoringServerScoreFunction;
 
 /** Class to work with model artifact metadata sourced from the model repository table. */
@@ -60,6 +61,7 @@ public class ModelContainer {
   public static final String UPLOADED_KEY = "uploaded";
   public static final String MODEL_REPO_FAMILY = "model";
   public static final String MODEL_CONTAINER_KEY = "model_container";
+  public static final String CURRENT_RECORD_VERSION = "model_container-0.1.0";
 
   private final URI mBaseStorageURI;
   private final Boolean mUploaded;
@@ -370,5 +372,35 @@ public class ModelContainer {
     } finally {
       kiji.release();
     }
+  }
+
+  /**
+   * Convenience method for constructing an Avro KijiModelContainer using nicer types.
+   *
+   * @param modelName of this container.
+   * @param modelVersion of this container.
+   * @param tableUri that this model deploys to.
+   * @param columnName that this model will be attached to.
+   * @param scoreFunctionClass that this model will use to generate scores.
+   * @param parameters that are required by the model.
+   * @return an avro record defining a model container.
+   */
+  public static KijiModelContainer createAvroModelContainer(
+      final String modelName,
+      final ProtocolVersion modelVersion,
+      final KijiURI tableUri,
+      final KijiColumnName columnName,
+      final Class<? extends ScoreFunction<?>> scoreFunctionClass,
+      final Map<String, String> parameters
+  ) {
+    return KijiModelContainer.newBuilder()
+        .setModelName(modelName)
+        .setModelVersion(modelVersion.toCanonicalString())
+        .setTableUri(tableUri.toString())
+        .setColumnName(columnName.getName())
+        .setScoreFunctionClass(scoreFunctionClass.getName())
+        .setParameters(parameters)
+        .setRecordVersion(CURRENT_RECORD_VERSION)
+        .build();
   }
 }
