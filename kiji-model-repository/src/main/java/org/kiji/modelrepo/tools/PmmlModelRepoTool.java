@@ -180,6 +180,7 @@ public final class PmmlModelRepoTool extends BaseTool implements KijiModelRepoTo
         : new File(mModelContainerFlag);
 
     if (mValidateFlag) {
+      Preconditions.checkNotNull(getConf());
       final FileSystem fileSystem = mModelFile.getFileSystem(getConf());
 
       // Check that the model file exists.

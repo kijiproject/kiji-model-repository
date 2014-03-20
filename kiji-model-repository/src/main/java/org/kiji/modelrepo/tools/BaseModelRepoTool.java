@@ -21,8 +21,11 @@ package org.kiji.modelrepo.tools;
 
 import java.util.List;
 
+import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
 
+import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.hbase.HBaseConfiguration;
 import org.kiji.schema.tools.BaseTool;
 
 /**
@@ -62,6 +65,17 @@ public class BaseModelRepoTool extends BaseTool {
       printHelp();
       return FAILURE;
     } else {
+      // Set the configuration for the subtool
+      Configuration conf = getConf();
+      if (conf == null) {
+        conf = new Configuration();
+        setConf(conf);
+      }
+      conf = HBaseConfiguration.addHbaseResources(conf);
+      // Should not be any Configuration set yet for the subtool.
+      Preconditions.checkNotNull(subTool.getConf());
+      subTool.setConf(conf);
+
       return subTool.toolMain(mSubtoolArgs);
     }
   }
