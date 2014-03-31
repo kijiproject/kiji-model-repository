@@ -26,6 +26,7 @@ import com.google.common.collect.Lists;
 
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hbase.HBaseConfiguration;
+
 import org.kiji.schema.tools.BaseTool;
 
 /**
@@ -73,7 +74,13 @@ public class BaseModelRepoTool extends BaseTool {
       }
       conf = HBaseConfiguration.addHbaseResources(conf);
       // Should not be any Configuration set yet for the subtool.
-      Preconditions.checkNotNull(subTool.getConf());
+      Preconditions.checkArgument(
+          null == subTool.getConf(),
+          String.format(
+              "We assume that the sub tool %s does not have any Configuration set in its "
+                + "constructor.  Please set any sub-tool-specific configuration within toolMain.",
+              subToolName
+          ));
       subTool.setConf(conf);
 
       return subTool.toolMain(mSubtoolArgs);
