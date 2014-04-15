@@ -7,4 +7,3 @@ org.kiji.modelrepo.tools.CheckModelRepoTool
 org.kiji.modelrepo.tools.ListModelRepoTool
 org.kiji.modelrepo.tools.UpdateModelRepoTool
 org.kiji.modelrepo.tools.FreshenerModelRepoTool
-org.kiji.modelrepo.tools.PmmlModelRepoTool
