@@ -62,7 +62,7 @@ public class TestDeployModelRepoTool extends KijiToolTest {
 
   @Before
   public void setupModelRepo() throws Exception {
-    mKiji = createTestKiji();
+    mKiji = getKiji();
     mTempDir = Files.createTempDir();
 
     mTempDir.deleteOnExit();
@@ -351,11 +351,18 @@ public class TestDeployModelRepoTool extends KijiToolTest {
   public void testShouldDeployWithExistingArtifact() throws Exception {
     // 1) Populate the table with some stuff
     KijiTable table = mKiji.openTable(KijiModelRepository.MODEL_REPO_TABLE_NAME);
-    KijiTableWriter writer = table.openTableWriter();
-    EntityId eid = table.getEntityId("org.kiji.test.sample_model", "1.0.0");
-    writer.put(eid, ModelContainer.MODEL_REPO_FAMILY, ModelContainer.LOCATION_KEY, "stuff");
-    writer.put(eid, ModelContainer.MODEL_REPO_FAMILY, ModelContainer.UPLOADED_KEY, true);
-    writer.close();
+    try {
+      KijiTableWriter writer = table.openTableWriter();
+      try {
+        EntityId eid = table.getEntityId("org.kiji.test.sample_model", "1.0.0");
+        writer.put(eid, ModelContainer.MODEL_REPO_FAMILY, ModelContainer.LOCATION_KEY, "stuff");
+        writer.put(eid, ModelContainer.MODEL_REPO_FAMILY, ModelContainer.UPLOADED_KEY, true);
+      } finally {
+        writer.close();
+      }
+    } finally {
+      table.release();
+    }
 
     // 2) Setup the new artifact and tool arguments.
     String artifactName = "org.kiji.test.sample_model_two";
@@ -396,17 +403,23 @@ public class TestDeployModelRepoTool extends KijiToolTest {
     }
   }
 
-  // 10) Test deploying an artifact using nonexistent source artifact's location.
   @Test
   public void testFailsToDeployWithNonexistentSourceArtifactLocation() throws Exception {
     // 1) Populate the table with some stuff
     KijiTable table = mKiji.openTable(KijiModelRepository.MODEL_REPO_TABLE_NAME);
-    KijiTableWriter writer = table.openTableWriter();
-    EntityId eid = table.getEntityId("org.kiji.test.sample_model", "1.0.0");
-    // Missing location.
-    // writer.put(eid, ModelArtifact.MODEL_REPO_FAMILY, ModelArtifact.LOCATION_KEY, "stuff");
-    writer.put(eid, ModelContainer.MODEL_REPO_FAMILY, ModelContainer.UPLOADED_KEY, true);
-    writer.close();
+    try {
+      EntityId eid = table.getEntityId("org.kiji.test.sample_model", "1.0.0");
+      KijiTableWriter writer = table.openTableWriter();
+      try {
+        // Missing location.
+        // writer.put(eid, ModelArtifact.MODEL_REPO_FAMILY, ModelArtifact.LOCATION_KEY, "stuff");
+        writer.put(eid, ModelContainer.MODEL_REPO_FAMILY, ModelContainer.UPLOADED_KEY, true);
+      } finally {
+        writer.close();
+      }
+    } finally {
+      table.release();
+    }
 
     // 2) Setup the new artifact and tool arguments.
     String artifactName = "org.kiji.test.sample_model_two";
@@ -453,36 +466,41 @@ public class TestDeployModelRepoTool extends KijiToolTest {
 
   @Test
   public void testConcurrentDeploy() throws IOException, InterruptedException {
-    final KijiModelRepository modelRepository = KijiModelRepository.open(mKiji);
-    final ExecutorService service = Executors.newFixedThreadPool(NUMBER_OF_DEPLOY_THREADS);
     final List<Future<String>> listOfDeployThreads = Lists.newArrayList();
-
-    // Deploy threads.
-    for (int i = 0; i < NUMBER_OF_DEPLOY_THREADS; i++) {
-      listOfDeployThreads.add(service.submit(new DeployModel(modelRepository)));
-    }
-
-    int exceptionsCount = 0;
+    final ExecutorService service = Executors.newFixedThreadPool(NUMBER_OF_DEPLOY_THREADS);
     try {
-      // Wait for threads to complete and check their result.
-      for (final Future<String> thread : listOfDeployThreads) {
-        final String result = thread.get();
-        if (!"".equals(result)) {
-          assertEquals("Exception must always be version conflict.",
-              EXPECTED_DEPLOYMENT_ERROR, result);
-          exceptionsCount++;
+      final KijiModelRepository modelRepository = KijiModelRepository.open(mKiji);
+      try {
+        // Deploy threads.
+        for (int i = 0; i < NUMBER_OF_DEPLOY_THREADS; i++) {
+          listOfDeployThreads.add(service.submit(new DeployModel(modelRepository)));
         }
-      }
-      assertEquals(
-          "Number of threads failing to deploy are 1 less than the number of threads started.",
-          NUMBER_OF_DEPLOY_THREADS - 1,
-          exceptionsCount);
-    } catch (final Exception e) {
-      // There should have been no exception.
-      Assert.fail("Some test-unrelated exception occured.");
-    }
+        int exceptionsCount = 0;
+        try {
+          // Wait for threads to complete and check their result.
+          for (final Future<String> thread : listOfDeployThreads) {
+            final String result = thread.get();
+            if (!"".equals(result)) {
+              assertEquals("Exception must always be version conflict.",
+                  EXPECTED_DEPLOYMENT_ERROR, result);
+              exceptionsCount++;
+            }
+          }
+          assertEquals(
+              "Number of threads failing to deploy are 1 less than the number of threads started.",
+              NUMBER_OF_DEPLOY_THREADS - 1,
+              exceptionsCount);
+        } catch (final Exception e) {
+          // There should have been no exception.
+          Assert.fail("Some test-unrelated exception occured.");
+        }
+      } finally {
+        modelRepository.close();
 
-    service.shutdownNow();
+      }
+    } finally {
+      service.shutdownNow();
+    }
   }
 
   /**
