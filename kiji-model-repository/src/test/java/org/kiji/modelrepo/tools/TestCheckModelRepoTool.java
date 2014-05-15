@@ -59,20 +59,26 @@ public class TestCheckModelRepoTool extends KijiToolTest {
 
     // Set up model repository table manually.
     final KijiTable table = mKiji.openTable(KijiModelRepository.MODEL_REPO_TABLE_NAME);
-    final KijiTableWriter writer = table.openTableWriter();
-    final EntityId eid1 = table.getEntityId("org.kiji.fake.project", "1.0.0");
-    final EntityId eid2 = table.getEntityId("org.kiji.fake.anotherproject", "1.0.0");
-    writer.put(eid1, ModelContainer.MODEL_REPO_FAMILY,
-        ModelContainer.LOCATION_KEY, 1L,
-        mTempDir.toURI().relativize(invalidJar.toURI()).toString());
-    writer.put(eid2, ModelContainer.MODEL_REPO_FAMILY,
-        ModelContainer.LOCATION_KEY, "nonexistent.war");
-    writer.put(eid1, ModelContainer.MODEL_REPO_FAMILY,
-        ModelContainer.UPLOADED_KEY, 1L, true);
-    writer.put(eid2, ModelContainer.MODEL_REPO_FAMILY,
-        ModelContainer.UPLOADED_KEY, 1L, true);
-    writer.close();
-    table.release();
+    try {
+      final KijiTableWriter writer = table.openTableWriter();
+      try {
+        final EntityId eid1 = table.getEntityId("org.kiji.fake.project", "1.0.0");
+        final EntityId eid2 = table.getEntityId("org.kiji.fake.anotherproject", "1.0.0");
+        writer.put(eid1, ModelContainer.MODEL_REPO_FAMILY,
+            ModelContainer.LOCATION_KEY, 1L,
+            mTempDir.toURI().relativize(invalidJar.toURI()).toString());
+        writer.put(eid2, ModelContainer.MODEL_REPO_FAMILY,
+            ModelContainer.LOCATION_KEY, "nonexistent.war");
+        writer.put(eid1, ModelContainer.MODEL_REPO_FAMILY,
+            ModelContainer.UPLOADED_KEY, 1L, true);
+        writer.put(eid2, ModelContainer.MODEL_REPO_FAMILY,
+            ModelContainer.UPLOADED_KEY, 1L, true);
+      } finally {
+        writer.close();
+      }
+    } finally {
+      table.release();
+    }
 
     // Run check model repository.
     final int status = runTool(new CheckModelRepoTool(),
@@ -92,23 +98,29 @@ public class TestCheckModelRepoTool extends KijiToolTest {
 
     // Set up model repository table manually.
     final KijiTable table = mKiji.openTable(KijiModelRepository.MODEL_REPO_TABLE_NAME);
-    final KijiTableWriter writer = table.openTableWriter();
-    final EntityId eid1 = table.getEntityId("org.kiji.fake.project", "1.0.0");
-    final EntityId eid2 = table.getEntityId("org.kiji.fake.anotherproject", "1.0.0");
-    writer.put(eid1, ModelContainer.MODEL_REPO_FAMILY,
-        ModelContainer.LOCATION_KEY, 1L,
-        mTempDir.toURI().relativize(invalidJar.toURI()).toString());
-    writer.put(eid1, ModelContainer.MODEL_REPO_FAMILY,
-        ModelContainer.LOCATION_KEY, 2L,
-        mTempDir.toURI().relativize(artifactJar.toURI()).toString());
-    writer.put(eid2, ModelContainer.MODEL_REPO_FAMILY,
-        ModelContainer.LOCATION_KEY, "nonexistent.war");
-    writer.put(eid1, ModelContainer.MODEL_REPO_FAMILY,
-        ModelContainer.UPLOADED_KEY, 1L, true);
-    writer.put(eid2, ModelContainer.MODEL_REPO_FAMILY,
-        ModelContainer.UPLOADED_KEY, 1L, true);
-    writer.close();
-    table.release();
+    try {
+      final KijiTableWriter writer = table.openTableWriter();
+      try {
+        final EntityId eid1 = table.getEntityId("org.kiji.fake.project", "1.0.0");
+        final EntityId eid2 = table.getEntityId("org.kiji.fake.anotherproject", "1.0.0");
+        writer.put(eid1, ModelContainer.MODEL_REPO_FAMILY,
+            ModelContainer.LOCATION_KEY, 1L,
+            mTempDir.toURI().relativize(invalidJar.toURI()).toString());
+        writer.put(eid1, ModelContainer.MODEL_REPO_FAMILY,
+            ModelContainer.LOCATION_KEY, 2L,
+            mTempDir.toURI().relativize(artifactJar.toURI()).toString());
+        writer.put(eid2, ModelContainer.MODEL_REPO_FAMILY,
+            ModelContainer.LOCATION_KEY, "nonexistent.war");
+        writer.put(eid1, ModelContainer.MODEL_REPO_FAMILY,
+            ModelContainer.UPLOADED_KEY, 1L, true);
+        writer.put(eid2, ModelContainer.MODEL_REPO_FAMILY,
+            ModelContainer.UPLOADED_KEY, 1L, true);
+      } finally {
+        writer.close();
+      }
+    } finally {
+      table.release();
+    }
 
     // Run check model repository.
     final int status = runTool(new CheckModelRepoTool(),
@@ -124,13 +136,19 @@ public class TestCheckModelRepoTool extends KijiToolTest {
   public void testSkipNonUploadedModels() throws Exception {
     // Set up model repository table manually.
     final KijiTable table = mKiji.openTable(KijiModelRepository.MODEL_REPO_TABLE_NAME);
-    final KijiTableWriter writer = table.openTableWriter();
-    final EntityId eid = table.getEntityId("org.kiji.fake.anotherproject", "1.0.0");
-    writer.put(eid, ModelContainer.MODEL_REPO_FAMILY,
-        ModelContainer.LOCATION_KEY, "nonexistent.war");
-    writer.put(eid, ModelContainer.MODEL_REPO_FAMILY, ModelContainer.UPLOADED_KEY, false);
-    writer.close();
-    table.release();
+    try {
+      final KijiTableWriter writer = table.openTableWriter();
+      try {
+        final EntityId eid = table.getEntityId("org.kiji.fake.anotherproject", "1.0.0");
+        writer.put(eid, ModelContainer.MODEL_REPO_FAMILY,
+            ModelContainer.LOCATION_KEY, "nonexistent.war");
+        writer.put(eid, ModelContainer.MODEL_REPO_FAMILY, ModelContainer.UPLOADED_KEY, false);
+      } finally {
+        writer.close();
+      }
+    } finally {
+      table.release();
+    }
 
     // Run check model repository.
     final int status = runTool(new CheckModelRepoTool(),

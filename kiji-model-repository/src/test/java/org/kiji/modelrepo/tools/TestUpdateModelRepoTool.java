@@ -58,37 +58,54 @@ public class TestUpdateModelRepoTool extends KijiToolTest {
   public void testUpdateProductionFlag() throws Exception {
     // Set up model repository table manually.
     final KijiTable table = mKiji.openTable(KijiModelRepository.MODEL_REPO_TABLE_NAME);
-    final KijiTableWriter writer = table.openTableWriter();
-    final EntityId eid1 = table.getEntityId("org.kiji.fake.project", "1.0.0");
-    writer.put(eid1, ModelContainer.MODEL_REPO_FAMILY,
-        ModelContainer.PRODUCTION_READY_KEY, false);
-    writer.put(eid1, ModelContainer.MODEL_REPO_FAMILY,
-        ModelContainer.UPLOADED_KEY, true);
-    writer.close();
+    try {
+      final KijiTableWriter writer = table.openTableWriter();
+      try {
+        KijiTableReader reader = table.openTableReader();
+        try {
+          final EntityId eid1 = table.getEntityId("org.kiji.fake.project", "1.0.0");
+          writer.put(eid1, ModelContainer.MODEL_REPO_FAMILY,
+              ModelContainer.PRODUCTION_READY_KEY, false);
+          writer.put(eid1, ModelContainer.MODEL_REPO_FAMILY,
+              ModelContainer.UPLOADED_KEY, true);
 
-    // Before update.
-    KijiTableReader reader = table.openTableReader();
-    KijiRowData row = reader.get(eid1, KijiDataRequest.create(ModelContainer.MODEL_REPO_FAMILY,
-        ModelContainer.PRODUCTION_READY_KEY));
-    assertEquals(false, row.getMostRecentValue(ModelContainer.MODEL_REPO_FAMILY,
-        ModelContainer.PRODUCTION_READY_KEY));
-    assertEquals(null, row.getMostRecentValue(ModelContainer.MODEL_REPO_FAMILY,
-        ModelContainer.MESSAGES_KEY));
+          // Before update.
+          final KijiRowData row =
+              reader.get(eid1, KijiDataRequest.create(ModelContainer.MODEL_REPO_FAMILY,
+                  ModelContainer.PRODUCTION_READY_KEY));
+          assertEquals(false, row.getMostRecentValue(ModelContainer.MODEL_REPO_FAMILY,
+                  ModelContainer.PRODUCTION_READY_KEY));
+          assertEquals(null, row.getMostRecentValue(ModelContainer.MODEL_REPO_FAMILY,
+                  ModelContainer.MESSAGES_KEY));
 
-    // Run update model repository.
-    final int status = runTool(new UpdateModelRepoTool(), new String[] {
-        "--kiji=" + mKiji.getURI().toString(),
-        "org.kiji.fake.project-1.0.0",
-        "--message=Hello world", });
-    assertEquals(BaseTool.SUCCESS, status);
+          // Run update model repository.
+          final int status = runTool(
+              new UpdateModelRepoTool(),
+              "--kiji=" + mKiji.getURI().toString(),
+              "org.kiji.fake.project-1.0.0",
+              "--message=Hello world");
+          assertEquals(BaseTool.SUCCESS, status);
 
-    // Confirm update.
-    row = reader.get(eid1, KijiDataRequest.create(ModelContainer.MODEL_REPO_FAMILY));
-    assertEquals(true, row.getMostRecentValue(ModelContainer.MODEL_REPO_FAMILY,
-        ModelContainer.PRODUCTION_READY_KEY));
-    assertEquals("Hello world", row.getMostRecentValue(ModelContainer.MODEL_REPO_FAMILY,
-        ModelContainer.MESSAGES_KEY).toString());
-    table.release();
+          // Confirm update.
+          final KijiRowData updatedRow =
+              reader.get(eid1, KijiDataRequest.create(ModelContainer.MODEL_REPO_FAMILY));
+          assertEquals(
+              true, updatedRow.getMostRecentValue(
+                  ModelContainer.MODEL_REPO_FAMILY,
+                  ModelContainer.PRODUCTION_READY_KEY));
+          assertEquals(
+              "Hello world", updatedRow.getMostRecentValue(
+                  ModelContainer.MODEL_REPO_FAMILY,
+                  ModelContainer.MESSAGES_KEY).toString());
+        } finally {
+          reader.close();
+        }
+      } finally {
+        writer.close();
+      }
+    } finally {
+      table.release();
+    }
   }
 
   @Test

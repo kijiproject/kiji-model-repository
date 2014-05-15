@@ -46,6 +46,7 @@ public class TestListModelRepoTool extends KijiToolTest {
   private Kiji mKiji = null;
   private File mTempDir = null;
 
+  // CSOFF: MethodLength
   @Before
   public void setupModelRepo() throws Exception {
     mKiji = createTestKiji();
@@ -54,121 +55,171 @@ public class TestListModelRepoTool extends KijiToolTest {
     KijiModelRepository.install(mKiji, mTempDir.toURI());
     // Manually, set up model repository table.
     final KijiTable table = mKiji.openTable(KijiModelRepository.MODEL_REPO_TABLE_NAME);
-    final KijiTableWriter writer = table.openTableWriter();
-    final EntityId linRegScore = table.getEntityId("org.kiji.fake.linregscore", "1.0.0");
-    final EntityId linRegScoreNew = table.getEntityId("org.kiji.fake.linregscore", "1.1.0");
-    final EntityId recommend = table.getEntityId("org.kiji.fake.recommend", "1.0.0");
-    final EntityId fraudScore = table.getEntityId("org.kiji.fake.fraudscore", "1.0.0");
-    final EntityId badModel = table.getEntityId("org.kiji.fake.badmodel", "1.0.0");
-    final EntityId incompleteModel = table.getEntityId("org.kiji.fake.incompletemodel", "1.0.0");
+    try {
+      final KijiTableWriter writer = table.openTableWriter();
+      try {
+        final EntityId linRegScore = table.getEntityId("org.kiji.fake.linregscore", "1.0.0");
+        final EntityId linRegScoreNew = table.getEntityId("org.kiji.fake.linregscore", "1.1.0");
+        final EntityId recommend = table.getEntityId("org.kiji.fake.recommend", "1.0.0");
+        final EntityId fraudScore = table.getEntityId("org.kiji.fake.fraudscore", "1.0.0");
+        final EntityId badModel = table.getEntityId("org.kiji.fake.badmodel", "1.0.0");
+        final EntityId incompleteModel =
+            table.getEntityId("org.kiji.fake.incompletemodel", "1.0.0");
 
-    // Write locations
-    writer.put(linRegScore, ModelContainer.MODEL_REPO_FAMILY,
-        ModelContainer.LOCATION_KEY, 1L, "nonexistent.jar");
-    writer.put(linRegScoreNew, ModelContainer.MODEL_REPO_FAMILY,
-        ModelContainer.LOCATION_KEY, 2L, "nonexistent.jar");
-    writer.put(recommend, ModelContainer.MODEL_REPO_FAMILY,
-        ModelContainer.LOCATION_KEY, 3L, "nonexistent.jar");
-    writer.put(fraudScore, ModelContainer.MODEL_REPO_FAMILY,
-        ModelContainer.LOCATION_KEY, 4L, "nonexistent.jar");
-    writer.put(badModel, ModelContainer.MODEL_REPO_FAMILY,
-        ModelContainer.LOCATION_KEY, 4L, "nonexistent.jar");
-    writer.put(incompleteModel, ModelContainer.MODEL_REPO_FAMILY,
-        ModelContainer.LOCATION_KEY, 4L, "nonexistent.jar");
+        // Write locations
+        writer.put(
+            linRegScore, ModelContainer.MODEL_REPO_FAMILY,
+            ModelContainer.LOCATION_KEY, 1L, "nonexistent.jar");
+        writer.put(
+            linRegScoreNew, ModelContainer.MODEL_REPO_FAMILY,
+            ModelContainer.LOCATION_KEY, 2L, "nonexistent.jar");
+        writer.put(
+            recommend, ModelContainer.MODEL_REPO_FAMILY,
+            ModelContainer.LOCATION_KEY, 3L, "nonexistent.jar");
+        writer.put(
+            fraudScore, ModelContainer.MODEL_REPO_FAMILY,
+            ModelContainer.LOCATION_KEY, 4L, "nonexistent.jar");
+        writer.put(
+            badModel, ModelContainer.MODEL_REPO_FAMILY,
+            ModelContainer.LOCATION_KEY, 4L, "nonexistent.jar");
+        writer.put(
+            incompleteModel, ModelContainer.MODEL_REPO_FAMILY,
+            ModelContainer.LOCATION_KEY, 4L, "nonexistent.jar");
 
-    // Set uploaded flags.
-    // The ModelArtifact.UPLOADED_KEY flags must persist at every entry from the birth of a record.
-    writer.put(linRegScore, ModelContainer.MODEL_REPO_FAMILY,
-        ModelContainer.UPLOADED_KEY, 1L, true);
-    writer.put(linRegScoreNew, ModelContainer.MODEL_REPO_FAMILY,
-        ModelContainer.UPLOADED_KEY, 2L, true);
-    writer.put(recommend, ModelContainer.MODEL_REPO_FAMILY,
-        ModelContainer.UPLOADED_KEY, 4L, true);
-    writer.put(fraudScore, ModelContainer.MODEL_REPO_FAMILY,
-        ModelContainer.UPLOADED_KEY, 4L, true);
-    writer.put(badModel, ModelContainer.MODEL_REPO_FAMILY,
-        ModelContainer.UPLOADED_KEY, 4L, true);
-    writer.put(incompleteModel, ModelContainer.MODEL_REPO_FAMILY,
-        ModelContainer.UPLOADED_KEY, 4L, false);
+        // Set uploaded flags. The ModelArtifact.UPLOADED_KEY flags must persist at every entry from
+        // the birth of a record.
+        writer.put(
+            linRegScore, ModelContainer.MODEL_REPO_FAMILY,
+            ModelContainer.UPLOADED_KEY, 1L, true);
+        writer.put(
+            linRegScoreNew, ModelContainer.MODEL_REPO_FAMILY,
+            ModelContainer.UPLOADED_KEY, 2L, true);
+        writer.put(
+            recommend, ModelContainer.MODEL_REPO_FAMILY,
+            ModelContainer.UPLOADED_KEY, 4L, true);
+        writer.put(
+            fraudScore, ModelContainer.MODEL_REPO_FAMILY,
+            ModelContainer.UPLOADED_KEY, 4L, true);
+        writer.put(
+            badModel, ModelContainer.MODEL_REPO_FAMILY,
+            ModelContainer.UPLOADED_KEY, 4L, true);
+        writer.put(
+            incompleteModel, ModelContainer.MODEL_REPO_FAMILY,
+            ModelContainer.UPLOADED_KEY, 4L, false);
 
-    // Read fake test definition and write to all the entries.
-    final InputStream inStream = getClass().getClassLoader().getResourceAsStream(
-        "org/kiji/modelrepo/sample/model_container.json");
-    final String modelContainerJson = IOUtils.toString(inStream);
-    final KijiModelContainer modelDefinition = (KijiModelContainer)
-        FromJson.fromJsonString(modelContainerJson, KijiModelContainer.getClassSchema());
-    writer.put(linRegScore, ModelContainer.MODEL_REPO_FAMILY,
-        ModelContainer.MODEL_CONTAINER_KEY, 1L, modelDefinition);
-    writer.put(linRegScoreNew, ModelContainer.MODEL_REPO_FAMILY,
-        ModelContainer.MODEL_CONTAINER_KEY, 2L, modelDefinition);
-    writer.put(recommend, ModelContainer.MODEL_REPO_FAMILY,
-        ModelContainer.MODEL_CONTAINER_KEY, 3L, modelDefinition);
-    writer.put(fraudScore, ModelContainer.MODEL_REPO_FAMILY,
-        ModelContainer.MODEL_CONTAINER_KEY, 4L, modelDefinition);
-    // Give incomplete model a definition since every model must have a definition.
-    writer.put(badModel, ModelContainer.MODEL_REPO_FAMILY,
-        ModelContainer.MODEL_CONTAINER_KEY, 5L, modelDefinition);
-    writer.put(incompleteModel, ModelContainer.MODEL_REPO_FAMILY,
-        ModelContainer.MODEL_CONTAINER_KEY, 5L, modelDefinition);
+        // Read fake test definition and write to all the entries.
+        final InputStream inStream = getClass().getClassLoader().getResourceAsStream(
+            "org/kiji/modelrepo/sample/model_container.json");
+        final String modelContainerJson = IOUtils.toString(inStream);
+        final KijiModelContainer modelDefinition = (KijiModelContainer)
+            FromJson.fromJsonString(modelContainerJson, KijiModelContainer.getClassSchema());
+        writer.put(
+            linRegScore, ModelContainer.MODEL_REPO_FAMILY,
+            ModelContainer.MODEL_CONTAINER_KEY, 1L, modelDefinition);
+        writer.put(
+            linRegScoreNew, ModelContainer.MODEL_REPO_FAMILY,
+            ModelContainer.MODEL_CONTAINER_KEY, 2L, modelDefinition);
+        writer.put(
+            recommend, ModelContainer.MODEL_REPO_FAMILY,
+            ModelContainer.MODEL_CONTAINER_KEY, 3L, modelDefinition);
+        writer.put(
+            fraudScore, ModelContainer.MODEL_REPO_FAMILY,
+            ModelContainer.MODEL_CONTAINER_KEY, 4L, modelDefinition);
+        // Give incomplete model a definition since every model must have a definition.
+        writer.put(
+            badModel, ModelContainer.MODEL_REPO_FAMILY,
+            ModelContainer.MODEL_CONTAINER_KEY, 5L, modelDefinition);
+        writer.put(
+            incompleteModel, ModelContainer.MODEL_REPO_FAMILY,
+            ModelContainer.MODEL_CONTAINER_KEY, 5L, modelDefinition);
 
-    // Write a few messages and production_ready flags.
-    writer.put(linRegScore, ModelContainer.MODEL_REPO_FAMILY,
-        ModelContainer.MESSAGES_KEY, 1L, "Website uses linear regression scorer.");
-    writer.put(linRegScore, ModelContainer.MODEL_REPO_FAMILY,
-        ModelContainer.PRODUCTION_READY_KEY, 1L, true);
-    writer.put(linRegScore, ModelContainer.MODEL_REPO_FAMILY,
-        ModelContainer.MESSAGES_KEY, 2L, "Turned off old linear regression scorer.");
-    writer.put(linRegScore, ModelContainer.MODEL_REPO_FAMILY,
-        ModelContainer.PRODUCTION_READY_KEY, 2L, false);
-    writer.put(linRegScoreNew, ModelContainer.MODEL_REPO_FAMILY,
-        ModelContainer.MESSAGES_KEY, 2L, "Linear regression scorer was updated.");
-    writer.put(linRegScoreNew, ModelContainer.MODEL_REPO_FAMILY,
-        ModelContainer.PRODUCTION_READY_KEY, 2L, true);
-    writer.put(linRegScoreNew, ModelContainer.MODEL_REPO_FAMILY,
-        ModelContainer.MESSAGES_KEY, 3L, "Linear regression is outdated");
-    writer.put(linRegScoreNew, ModelContainer.MODEL_REPO_FAMILY,
-        ModelContainer.PRODUCTION_READY_KEY, 3L, false);
-    writer.put(recommend, ModelContainer.MODEL_REPO_FAMILY,
-        ModelContainer.MESSAGES_KEY, 3L, "Brand new recommendation engine online");
-    writer.put(recommend, ModelContainer.MODEL_REPO_FAMILY,
-        ModelContainer.PRODUCTION_READY_KEY, 3L, true);
-    writer.put(fraudScore, ModelContainer.MODEL_REPO_FAMILY,
-        ModelContainer.MESSAGES_KEY, 4L, "FraudScore implemented.");
-    writer.put(fraudScore, ModelContainer.MODEL_REPO_FAMILY,
-        ModelContainer.PRODUCTION_READY_KEY, 4L, true);
-    writer.put(fraudScore, ModelContainer.MODEL_REPO_FAMILY,
-        ModelContainer.MESSAGES_KEY, 4000L, "FraudScore functioned during cyberattack.");
-    writer.put(fraudScore, ModelContainer.MODEL_REPO_FAMILY,
-        ModelContainer.MESSAGES_KEY, 8000L, "FraudScore failed to detect new attacks.");
-    writer.put(badModel, ModelContainer.MODEL_REPO_FAMILY,
-        ModelContainer.MESSAGES_KEY, 5L, "Should never be implemented.");
-    writer.put(badModel, ModelContainer.MODEL_REPO_FAMILY,
-        ModelContainer.PRODUCTION_READY_KEY, 5L, false);
-    writer.put(badModel, ModelContainer.MODEL_REPO_FAMILY,
-        ModelContainer.PRODUCTION_READY_KEY, 6L, true);
-    writer.put(badModel, ModelContainer.MODEL_REPO_FAMILY,
-        ModelContainer.PRODUCTION_READY_KEY, 7L, false);
-    writer.put(badModel, ModelContainer.MODEL_REPO_FAMILY,
-        ModelContainer.MESSAGES_KEY, 8L, "Random comment.");
-    writer.put(badModel, ModelContainer.MODEL_REPO_FAMILY,
-        ModelContainer.MESSAGES_KEY, 9L, "Random comment.");
-    writer.put(badModel, ModelContainer.MODEL_REPO_FAMILY,
-        ModelContainer.PRODUCTION_READY_KEY, 10L, true);
-    writer.put(badModel, ModelContainer.MODEL_REPO_FAMILY,
-        ModelContainer.PRODUCTION_READY_KEY, 11L, false);
-    writer.put(badModel, ModelContainer.MODEL_REPO_FAMILY,
-        ModelContainer.MESSAGES_KEY, 11L, "Random comment.");
-    writer.put(badModel, ModelContainer.MODEL_REPO_FAMILY,
-        ModelContainer.MESSAGES_KEY, 12L, "Random comment.");
-    writer.put(incompleteModel, ModelContainer.MODEL_REPO_FAMILY,
-        ModelContainer.PRODUCTION_READY_KEY, 11L, false);
-    writer.put(incompleteModel, ModelContainer.MODEL_REPO_FAMILY,
-        ModelContainer.MESSAGES_KEY, 11L, "Random comment.");
-
-    // Close table.
-    writer.close();
-    table.release();
+        // Write a few messages and production_ready flags.
+        writer.put(
+            linRegScore, ModelContainer.MODEL_REPO_FAMILY,
+            ModelContainer.MESSAGES_KEY, 1L, "Website uses linear regression scorer.");
+        writer.put(
+            linRegScore, ModelContainer.MODEL_REPO_FAMILY,
+            ModelContainer.PRODUCTION_READY_KEY, 1L, true);
+        writer.put(
+            linRegScore, ModelContainer.MODEL_REPO_FAMILY,
+            ModelContainer.MESSAGES_KEY, 2L, "Turned off old linear regression scorer.");
+        writer.put(
+            linRegScore, ModelContainer.MODEL_REPO_FAMILY,
+            ModelContainer.PRODUCTION_READY_KEY, 2L, false);
+        writer.put(
+            linRegScoreNew, ModelContainer.MODEL_REPO_FAMILY,
+            ModelContainer.MESSAGES_KEY, 2L, "Linear regression scorer was updated.");
+        writer.put(
+            linRegScoreNew, ModelContainer.MODEL_REPO_FAMILY,
+            ModelContainer.PRODUCTION_READY_KEY, 2L, true);
+        writer.put(
+            linRegScoreNew, ModelContainer.MODEL_REPO_FAMILY,
+            ModelContainer.MESSAGES_KEY, 3L, "Linear regression is outdated");
+        writer.put(
+            linRegScoreNew, ModelContainer.MODEL_REPO_FAMILY,
+            ModelContainer.PRODUCTION_READY_KEY, 3L, false);
+        writer.put(
+            recommend, ModelContainer.MODEL_REPO_FAMILY,
+            ModelContainer.MESSAGES_KEY, 3L, "Brand new recommendation engine online");
+        writer.put(
+            recommend, ModelContainer.MODEL_REPO_FAMILY,
+            ModelContainer.PRODUCTION_READY_KEY, 3L, true);
+        writer.put(
+            fraudScore, ModelContainer.MODEL_REPO_FAMILY,
+            ModelContainer.MESSAGES_KEY, 4L, "FraudScore implemented.");
+        writer.put(
+            fraudScore, ModelContainer.MODEL_REPO_FAMILY,
+            ModelContainer.PRODUCTION_READY_KEY, 4L, true);
+        writer.put(
+            fraudScore, ModelContainer.MODEL_REPO_FAMILY,
+            ModelContainer.MESSAGES_KEY, 4000L, "FraudScore functioned during cyberattack.");
+        writer.put(
+            fraudScore, ModelContainer.MODEL_REPO_FAMILY,
+            ModelContainer.MESSAGES_KEY, 8000L, "FraudScore failed to detect new attacks.");
+        writer.put(
+            badModel, ModelContainer.MODEL_REPO_FAMILY,
+            ModelContainer.MESSAGES_KEY, 5L, "Should never be implemented.");
+        writer.put(
+            badModel, ModelContainer.MODEL_REPO_FAMILY,
+            ModelContainer.PRODUCTION_READY_KEY, 5L, false);
+        writer.put(
+            badModel, ModelContainer.MODEL_REPO_FAMILY,
+            ModelContainer.PRODUCTION_READY_KEY, 6L, true);
+        writer.put(
+            badModel, ModelContainer.MODEL_REPO_FAMILY,
+            ModelContainer.PRODUCTION_READY_KEY, 7L, false);
+        writer.put(
+            badModel, ModelContainer.MODEL_REPO_FAMILY,
+            ModelContainer.MESSAGES_KEY, 8L, "Random comment.");
+        writer.put(
+            badModel, ModelContainer.MODEL_REPO_FAMILY,
+            ModelContainer.MESSAGES_KEY, 9L, "Random comment.");
+        writer.put(
+            badModel, ModelContainer.MODEL_REPO_FAMILY,
+            ModelContainer.PRODUCTION_READY_KEY, 10L, true);
+        writer.put(
+            badModel, ModelContainer.MODEL_REPO_FAMILY,
+            ModelContainer.PRODUCTION_READY_KEY, 11L, false);
+        writer.put(
+            badModel, ModelContainer.MODEL_REPO_FAMILY,
+            ModelContainer.MESSAGES_KEY, 11L, "Random comment.");
+        writer.put(
+            badModel, ModelContainer.MODEL_REPO_FAMILY,
+            ModelContainer.MESSAGES_KEY, 12L, "Random comment.");
+        writer.put(
+            incompleteModel, ModelContainer.MODEL_REPO_FAMILY,
+            ModelContainer.PRODUCTION_READY_KEY, 11L, false);
+        writer.put(
+            incompleteModel, ModelContainer.MODEL_REPO_FAMILY,
+            ModelContainer.MESSAGES_KEY, 11L, "Random comment.");
+      } finally {
+        writer.close();
+      }
+    } finally {
+      table.release();
+    }
   }
+  // CSON
 
   @Test
   public void testShouldListEveryFieldByDefault() throws Exception {

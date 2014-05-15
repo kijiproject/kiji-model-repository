@@ -162,11 +162,17 @@ public class TestDeployModelRepoTool extends KijiToolTest {
   public void testShouldDeployNewModelToPopulatedTable() throws Exception {
     // 1) Populate the table with some stuff
     KijiTable table = mKiji.openTable(KijiModelRepository.MODEL_REPO_TABLE_NAME);
-    KijiTableWriter writer = table.openTableWriter();
-    EntityId eid = table.getEntityId("org.kiji.test.sample_model", "1.0.0");
-    writer.put(eid, ModelContainer.MODEL_REPO_FAMILY, ModelContainer.LOCATION_KEY, "stuff");
-    writer.close();
-    table.release();
+    try {
+      KijiTableWriter writer = table.openTableWriter();
+      try {
+        EntityId eid = table.getEntityId("org.kiji.test.sample_model", "1.0.0");
+        writer.put(eid, ModelContainer.MODEL_REPO_FAMILY, ModelContainer.LOCATION_KEY, "stuff");
+      } finally {
+        writer.close();
+      }
+    } finally {
+      table.release();
+    }
 
     // 2) Setup the artifact
     List<File> dependencies = TestUtils.getDependencies(5);
@@ -206,11 +212,17 @@ public class TestDeployModelRepoTool extends KijiToolTest {
   public void testShouldDeployNewModelWithVersionToPopulatedTable() throws Exception {
     // 1) Populate the table with some stuff
     KijiTable table = mKiji.openTable(KijiModelRepository.MODEL_REPO_TABLE_NAME);
-    KijiTableWriter writer = table.openTableWriter();
-    EntityId eid = table.getEntityId("org.kiji.test.sample_model", "1.0.0");
-    writer.put(eid, ModelContainer.MODEL_REPO_FAMILY, ModelContainer.LOCATION_KEY, "stuff");
-    writer.close();
-    table.release();
+    try {
+      KijiTableWriter writer = table.openTableWriter();
+      try {
+        EntityId eid = table.getEntityId("org.kiji.test.sample_model", "1.0.0");
+        writer.put(eid, ModelContainer.MODEL_REPO_FAMILY, ModelContainer.LOCATION_KEY, "stuff");
+      } finally {
+        writer.close();
+      }
+    } finally {
+      table.release();
+    }
 
     // 2) Setup the artifact
     List<File> dependencies = TestUtils.getDependencies(5);
@@ -251,12 +263,18 @@ public class TestDeployModelRepoTool extends KijiToolTest {
   public void testFailToDeployWithVersionConflict() throws Exception {
     // 1) Populate the table with some stuff
     KijiTable table = mKiji.openTable(KijiModelRepository.MODEL_REPO_TABLE_NAME);
-    KijiTableWriter writer = table.openTableWriter();
-    EntityId eid = table.getEntityId("org.kiji.test.sample_model", "1.0.0");
-    writer.put(eid, ModelContainer.MODEL_REPO_FAMILY, ModelContainer.LOCATION_KEY, "stuff");
-    writer.put(eid, ModelContainer.MODEL_REPO_FAMILY, ModelContainer.UPLOADED_KEY, true);
-    writer.close();
-    table.release();
+    try {
+      KijiTableWriter writer = table.openTableWriter();
+      try {
+        EntityId eid = table.getEntityId("org.kiji.test.sample_model", "1.0.0");
+        writer.put(eid, ModelContainer.MODEL_REPO_FAMILY, ModelContainer.LOCATION_KEY, "stuff");
+        writer.put(eid, ModelContainer.MODEL_REPO_FAMILY, ModelContainer.UPLOADED_KEY, true);
+      } finally {
+        writer.close();
+      }
+    } finally {
+      table.release();
+    }
 
     // 2) Setup the artifact
     List<File> dependencies = TestUtils.getDependencies(5);
