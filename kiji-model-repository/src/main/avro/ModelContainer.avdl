@@ -23,9 +23,97 @@
  */
 protocol KijiModelContainers {
 
+  /** Record representing everything needed to score a model. */
+  record ScoringParameters {
+    /** Version string, for future compatibility. */
+    string record_version;
+
+    /** Fully qualified class of the ScoreFunction. */
+    union { null, string } score_function_class = null;
+
+    /**
+     * Configuration parameters which will be passed to the KijiFreshnessPolicy and ScoreFunction.
+     */
+    map<string> parameters = {};
+
+    /** KijiURI of the table from which data is provided to the ScoreFunction. */
+    union { null, string } table_uri = null;
+
+    /** Column name to which the ScoreFunction should be attached. */
+    union { null, string } attached_column = null;
+  }
+
+  /** Enumeration of possible training job types. */
+  enum TrainingJobType {
+    EXPRESS, KIJIMR, BASH
+  }
+
   /**
-   * Record that encapsulates everything needed to perform freshening.  Stored in a KijiMetaTable.
+   * Record representing information needed to run a KijiExpress job. Jar arguments to the express
+   * job command are provided externally to this record.
    */
+  record ExpressJob {
+    /** Version string, for future compatibility. */
+    string record_version;
+
+    /** Fully qualified class name of the Job class to run. */
+    union { null, string } job_class = null;
+
+    /** Scalding Arguments. */
+    array<string> scalding_args = [];
+
+    /** JVM Arguments. */
+    array<string> jvm_args = [];
+  }
+
+  /** Record representing information needed to run a KijiMapReduce job. */
+  record MapReduceJob {
+    /** Version string, for future compatibility. */
+    string record_version;
+
+    /** Input specification as defined by org.kiji.mapreduce.tools.framework.JobTool */
+    union { null, string } input_spec = null;
+
+    /** Output specification as defined by org.kiji.mapreduce.tools.framework.JobTool */
+    union { null, string } output_spec = null;
+
+    /**
+     * KeyValueStore specification XML as defined by
+     * org.kiji.mapreduce.kvstore.impl.XmlKeyValueStoreParser
+     */
+    union { null, string } kvstore_xml = null;
+  }
+
+  /** Record representing information needed to run a Bash command. */
+  record BashCommand {
+    /** Version string, for future compatibility. */
+    string record_version;
+
+    /** The Bash command itself. */
+    union { null, string } command = null;
+
+    /** TODO: Does this need other information, or should we just assume everything is in place? */
+  }
+
+  /** Record representing information needed to train a model. */
+  record TrainingParameters {
+    /** Version string, for future compatibility. */
+    string record_version;
+
+    /** Type of the training job. */
+    TrainingJobType job_type;
+
+    /** Optional parameters for a KijiExpress job. */
+    union { null, ExpressJob } express_job = null;
+
+    /** Optional parameters for a KijiMapReduce job. */
+    union { null, MapReduceJob } mapreduce_job = null;
+
+    /** Optional parameters for a Bash command. */
+    union { null, BashCommand } bash_command = null;
+  }
+
+  /** Record representing information needed to train and score a model. */
   record KijiModelContainer {
     /** Version string, for future compatibility. */
     string record_version = null;
@@ -36,16 +124,10 @@ protocol KijiModelContainers {
     /** Version of model. */
     union { null, string } model_version = null;
 
-    /** Fully qualified class of the ScoreFunction to run if data is stale. */
-    union { null, string } score_function_class = null;
+    /** Information about how to train this model. */
+    union { null, TrainingParameters } training_parameters = null;
 
-    /** Configuration parameters which will be passed to the freshness policy and score function. */
-    map<string> parameters = {};
-
-    /** Table URI of the table from which data is provided to the scoring function. */
-    union { null, string } table_uri = null;
-
-    /** Column name that the score function can access via its context object. */
-    union { null, string } column_name = null;
+    /** Information about how to score this model. */
+    union { null, ScoringParameters } scoring_parameters = null;
   }
 }

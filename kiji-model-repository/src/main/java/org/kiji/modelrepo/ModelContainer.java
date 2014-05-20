@@ -42,6 +42,7 @@ import org.slf4j.LoggerFactory;
 import org.kiji.modelrepo.artifactvalidator.ArtifactValidator;
 import org.kiji.modelrepo.artifactvalidator.WarArtifactValidator;
 import org.kiji.modelrepo.avro.KijiModelContainer;
+import org.kiji.modelrepo.avro.ScoringParameters;
 import org.kiji.schema.Kiji;
 import org.kiji.schema.KijiColumnName;
 import org.kiji.schema.KijiRowData;
@@ -62,6 +63,11 @@ public class ModelContainer {
   public static final String MODEL_REPO_FAMILY = "model";
   public static final String MODEL_CONTAINER_KEY = "model_container";
   public static final String CURRENT_RECORD_VERSION = "model_container-0.1.0";
+  public static final String CURRENT_SCORING_RECORD_VERSION = "model_container_scoring-0.1.0";
+  public static final String CURRENT_TRAINING_RECORD_VERSION = "model_container_training-0.1.0";
+  public static final String CURRENT_BASH_RECORD_VERSION = "model_container_bash-0.1.0";
+  public static final String CURRENT_KIJIMR_RECORD_VERSION = "model_container_mr-0.1.0";
+  public static final String CURRENT_EXPRESS_RECORD_VERSION = "model_container_express-0.1.0";
 
   private final URI mBaseStorageURI;
   private final Boolean mUploaded;
@@ -335,7 +341,8 @@ public class ModelContainer {
   ) throws IOException {
     Preconditions.checkState(mProductionReady.lastEntry().getValue(),
         "Model must be production ready to be attached as a Freshener.");
-    final KijiURI tableUri = KijiURI.newBuilder(mModelContainer.getTableUri()).build();
+    final KijiURI tableUri =
+        KijiURI.newBuilder(mModelContainer.getScoringParameters().getTableUri()).build();
     final Kiji kiji = Kiji.Factory.open(tableUri);
     try {
       Preconditions.checkState(null != kiji.getSystemTable()
@@ -345,10 +352,12 @@ public class ModelContainer {
               + ScoringServerScoreFunction.SCORING_SERVER_BASE_URL_SYSTEM_KEY);
 
       final String tableName = tableUri.getTable();
-      final KijiColumnName columnName = new KijiColumnName(mModelContainer.getColumnName());
+      final KijiColumnName columnName =
+          new KijiColumnName(mModelContainer.getScoringParameters().getAttachedColumn());
 
       final String scoreFunctionClass = ScoringServerScoreFunction.class.getName();
-      final Map<String, String> innerParams = Maps.newHashMap(mModelContainer.getParameters());
+      final Map<String, String> innerParams =
+          Maps.newHashMap(mModelContainer.getScoringParameters().getParameters());
       innerParams.putAll(parameters);
       innerParams.put(ScoringServerScoreFunction.SCORING_SERVER_MODEL_ID_PARAMETER_KEY,
           mArtifact.getFullyQualifiedName());
@@ -396,11 +405,15 @@ public class ModelContainer {
     return KijiModelContainer.newBuilder()
         .setModelName(modelName)
         .setModelVersion(modelVersion.toCanonicalString())
-        .setTableUri(tableUri.toString())
-        .setColumnName(columnName.getName())
-        .setScoreFunctionClass(scoreFunctionClass.getName())
-        .setParameters(parameters)
+        .setScoringParameters(ScoringParameters.newBuilder()
+            .setRecordVersion(CURRENT_SCORING_RECORD_VERSION)
+            .setTableUri(tableUri.toString())
+            .setAttachedColumn(columnName.getName())
+            .setScoreFunctionClass(scoreFunctionClass.getName())
+            .setParameters(parameters)
+            .build())
         .setRecordVersion(CURRENT_RECORD_VERSION)
         .build();
   }
 }
+
