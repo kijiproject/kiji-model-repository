@@ -57,9 +57,6 @@ protocol KijiModelContainers {
 
   /** Record representing everything needed to score a model. */
   record ScoringParameters {
-    /** Version string, for future compatibility. */
-    string record_version;
-
     /** Fully qualified class of the ScoreFunction. */
     union { null, string } score_function_class = null;
 
@@ -78,20 +75,15 @@ protocol KijiModelContainers {
     union { null, string } attached_column = null;
   }
 
-  /** Enumeration of possible training job types. */
-  enum TrainingJobType {
-    EXPRESS, KIJIMR, BASH
-  }
-
   /**
    * Record representing information needed to run a KijiExpress job. Jar arguments to the express
    * job command are provided externally to this record.
    */
   record ExpressJob {
-    /** Version string, for future compatibility. */
-    string record_version;
-
-    /** Fully qualified class name of the Job class to run. */
+    /**
+     * Fully qualified class name of the Job class to run. Job class must include a constructor
+     * which requires only a Scalding Args object, to be instantiated via reflection.
+     */
     union { null, string } job_class = null;
 
     /** Scalding Arguments. */
@@ -101,10 +93,81 @@ protocol KijiModelContainers {
     array<string> jvm_args = [];
   }
 
+  /**
+   * Record representing information needed to run a KijiProducer job. Jar arguments are provided
+   * externally to this record.
+   */
+  record ProducerJob {
+    /** Fully qualified class name of the KijiProducer class to run. */
+    union { null, string } producer_class = null;
+
+    /** Number of threads to run in parallel per map task. */
+    union { null, int } num_threads = 1;
+  }
+
+  /**
+   * Record representing information needed to run a KijiGatherer job. Jar arguments are provided
+   * externally to this record.
+   */
+  record GathererJob {
+    /** Fully qualified class name of the KijiGatherer class to run. */
+    union { null, string } gatherer_class = null;
+
+    /** Fully qualified class name of the combiner to use. (optional) */
+    union { null, string } combiner_class = null;
+
+    /** Fully qualified class name of the reducer to use. (optional) */
+    union { null, string } reducer_class = null;
+  }
+
+  /**
+   * Record representing information needed to run a KijiPivot job. Jar arguments are provided
+   * externally to this record.
+   */
+  record PivotJob {
+    /** Fully qualified class name of the KijiPivot class to run. */
+    union { null, string } pivot_class = null;
+  }
+
+  /**
+   * Record representing information needed to run a generic MapReduce job. Jar arguments are
+   * provided externally to this record.
+   */
+  record GenericMRJob {
+    /** Fully qualified class name of the KijiMapper class to run. */
+    union { null, string } mapper_class = null;
+
+    /**
+     * Fully qualified class name of the Combiner class (must be a subclass of KijiReducer) to run.
+     * (optional)
+     */
+    union { null, string } combiner_class = null;
+
+    /** Fully qualified class name of the KijiReducer class to run. (optional) */
+    union { null, string } reducer_class = null;
+  }
+
+  /** Enumeration of possible KijiMapReduce job types. */
+  enum MRJobType {
+    PRODUCER, GATHERER, PIVOT, GENERIC
+  }
+
   /** Record representing information needed to run a KijiMapReduce job. */
   record MapReduceJob {
-    /** Version string, for future compatibility. */
-    string record_version;
+    /** Type of the KijiMapReduce job. */
+    MRJobType job_type;
+
+    /** Optional parameters for a KijiProducer job. */
+    union { null, ProducerJob } producer_job = null;
+
+    /** Optional parameters for a KijiGatherer job. */
+    union { null, GathererJob } gatherer_job = null;
+
+    /** Optional parameters for a KijiPivot job. */
+    union { null, PivotJob } pivot_job = null;
+
+    /** Optional parameters for a KijiMapReduce job. */
+    union { null, GenericMRJob } mapreduce_job = null;
 
     /** Input specification as defined by org.kiji.mapreduce.tools.framework.JobTool */
     union { null, string } input_spec = null;
@@ -121,20 +184,19 @@ protocol KijiModelContainers {
 
   /** Record representing information needed to run a Bash command. */
   record BashCommand {
-    /** Version string, for future compatibility. */
-    string record_version;
-
     /** The Bash command itself. */
     union { null, string } command = null;
 
     /** TODO: Does this need other information, or should we just assume everything is in place? */
   }
 
+  /** Enumeration of possible training job types. */
+  enum TrainingJobType {
+    EXPRESS, KIJIMR, BASH
+  }
+
   /** Record representing information needed to train a model. */
   record TrainingParameters {
-    /** Version string, for future compatibility. */
-    string record_version;
-
     /** Type of the training job. */
     TrainingJobType job_type;
 

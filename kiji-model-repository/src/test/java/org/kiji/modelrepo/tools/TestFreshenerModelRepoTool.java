@@ -90,7 +90,6 @@ public class TestFreshenerModelRepoTool extends KijiClientTest {
       + "  \"model_name\": \"name\","
       + "  \"model_version\": \"1.0.0\","
       + "  \"scoring_parameters\": {"
-      + "    \"record_version\": \"model_container_scoring-0.1.0\","
       + "    \"score_function_class\": \"foo.bar.ScoreFn\","
       + "    \"parameters\": {},"
       + "    \"table_uri\": \"%s\","

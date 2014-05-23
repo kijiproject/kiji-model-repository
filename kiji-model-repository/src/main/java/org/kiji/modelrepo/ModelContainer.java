@@ -406,7 +406,6 @@ public class ModelContainer {
         .setModelName(modelName)
         .setModelVersion(modelVersion.toCanonicalString())
         .setScoringParameters(ScoringParameters.newBuilder()
-            .setRecordVersion(CURRENT_SCORING_RECORD_VERSION)
             .setTableUri(tableUri.toString())
             .setAttachedColumn(columnName.getName())
             .setScoreFunctionClass(scoreFunctionClass.getName())
