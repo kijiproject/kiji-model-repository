@@ -30,7 +30,6 @@ import java.util.Set;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
-import org.apache.avro.Schema;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -40,7 +39,6 @@ import org.kiji.modelrepo.packager.WarPackager;
 import org.kiji.modelrepo.uploader.ArtifactUploader;
 import org.kiji.modelrepo.uploader.MavenArtifactUploader;
 import org.kiji.schema.AtomicKijiPutter;
-import org.kiji.schema.DecodedCell;
 import org.kiji.schema.EntityId;
 import org.kiji.schema.Kiji;
 import org.kiji.schema.KijiColumnName;
@@ -55,11 +53,7 @@ import org.kiji.schema.KijiTable;
 import org.kiji.schema.KijiTableReader;
 import org.kiji.schema.KijiTableReader.KijiScannerOptions;
 import org.kiji.schema.KijiURI;
-import org.kiji.schema.avro.RowKeyFormat2;
 import org.kiji.schema.avro.TableLayoutDesc;
-import org.kiji.schema.filter.ColumnValueEqualsRowFilter;
-import org.kiji.schema.filter.Filters;
-import org.kiji.schema.filter.FormattedEntityIdRowFilter;
 import org.kiji.schema.filter.KijiRowFilter;
 import org.kiji.schema.layout.KijiTableLayout;
 import org.kiji.schema.util.ProtocolVersion;
@@ -128,18 +122,6 @@ public final class KijiModelRepository implements Closeable {
       LOG.error("Error opening file ", ioe);
     }
   }
-
-  private static final KijiRowFilter UPLOADED_MODEL_FILTER =
-      new ColumnValueEqualsRowFilter(
-          ModelContainer.MODEL_REPO_FAMILY,
-          ModelContainer.UPLOADED_KEY,
-          new DecodedCell<Boolean>(Schema.create(Schema.Type.BOOLEAN), true));
-
-  private static final KijiRowFilter PRODUCTION_READY_FILTER =
-      new ColumnValueEqualsRowFilter(
-          ModelContainer.MODEL_REPO_FAMILY,
-          ModelContainer.PRODUCTION_READY_KEY,
-          new DecodedCell<Boolean>(Schema.create(Schema.Type.BOOLEAN), true));
 
   /**
    * Opens a KijiModelRepository for a given kiji using the default model repository table name.
@@ -459,7 +441,8 @@ public final class KijiModelRepository implements Closeable {
    * @throws IOException if the deletion attempt was unsuccessful.
    */
   private void deleteRow(final ArtifactName artifact) throws IOException {
-    final EntityId eid = mKijiTable.getEntityId(artifact.getName(),
+    final EntityId eid = mKijiTable.getEntityId(
+        artifact.getName(),
         artifact.getVersion().toCanonicalString());
     final KijiDeleter deleter = mKijiTable.getWriterFactory().openTableWriter();
     deleter.deleteRow(eid);
@@ -550,7 +533,8 @@ public final class KijiModelRepository implements Closeable {
     // CSON: ParameterNumberCheck
 
     // Source version must be specified.
-    Preconditions.checkArgument(sourceArtifact.isVersionSpecified(),
+    Preconditions.checkArgument(
+        sourceArtifact.isVersionSpecified(),
         "Source artifact must specify version.");
 
     // If the version is not specified, then fetch the latest version given the
@@ -567,9 +551,10 @@ public final class KijiModelRepository implements Closeable {
 
     // Acquire appropriate existing artifact's location
     final ModelContainer existingArtifact = getModelContainer(sourceArtifact);
-    Preconditions.checkNotNull(existingArtifact.getLocation(), String.format(
-        "Could not ascertain model location field of specified existing artifact: %s",
-        sourceArtifact));
+    Preconditions.checkNotNull(
+        existingArtifact.getLocation(), String.format(
+            "Could not ascertain model location field of specified existing artifact: %s",
+            sourceArtifact));
     final String location = existingArtifact.getLocation();
 
     // Put entry to the model repository table.
@@ -629,20 +614,19 @@ public final class KijiModelRepository implements Closeable {
   private ProtocolVersion fetchNextVersion(final ArtifactName artifact)
       throws IOException {
 
-    final FormattedEntityIdRowFilter filter = new FormattedEntityIdRowFilter(
-        (RowKeyFormat2) mKijiTable.getLayout().getDesc().getKeysFormat(),
-        artifact.getName());
-    final KijiDataRequest dataRequest = KijiDataRequest.create("model");
-    final KijiScannerOptions options = new KijiScannerOptions();
-    options.setKijiRowFilter(filter);
-
     final KijiTableReader reader = mKijiTable.openTableReader();
     try {
-      final KijiRowScanner scanner = reader.getScanner(dataRequest, options);
+      final KijiRowScanner scanner = reader.getScanner(KijiDataRequest.create("model"));
 
       ProtocolVersion currentVersion = ProtocolVersion.parse("0.0.0");
       // Find the highest version.
       for (KijiRowData row : scanner) {
+        // Consider only rows with entity IDs corresponding to the artifact in question.
+        final String name = row.getEntityId().getComponentByIndex(0);
+        if (!name.equals(artifact.getName())) {
+          continue;
+        }
+
         ProtocolVersion version = ProtocolVersion.parse(row.getEntityId()
             .getComponentByIndex(1).toString());
         if (version.compareTo(currentVersion) > 0) {
@@ -702,6 +686,50 @@ public final class KijiModelRepository implements Closeable {
   }
 
   /**
+   * Returns rows corresponding to models that are uploaded.
+   *
+   * @param scanner over rows in the model repository table.
+   * @return a list of rows corresponding to uploaded models.
+   * @throws IOException if there is an error accessing the row scanner.
+   */
+  private static List<KijiRowData> getUploadedModels(
+      KijiRowScanner scanner
+  ) throws IOException {
+    return getUploadedModels(scanner, false);
+  }
+
+  /**
+   * Returns rows corresponding to models that are uploaded and (optionally) production-ready.
+   *
+   * @param scanner over rows in the model repository table.
+   * @param productionReadyOnly if returned rows should correspond to only production-ready models.
+   * @return a list of rows corresponding to uploaded (and optionally production-ready) models.
+   * @throws IOException if there is an error accessing the row scanner.
+   */
+  private static List<KijiRowData> getUploadedModels(
+      KijiRowScanner scanner,
+      boolean productionReadyOnly
+      ) throws IOException {
+    final List<KijiRowData> validUploadedModels = Lists.newArrayList();
+    for (KijiRowData row: scanner) {
+      final boolean isUploaded = row.getMostRecentValue(
+          ModelContainer.MODEL_REPO_FAMILY, ModelContainer.UPLOADED_KEY);
+
+      boolean isProduction = false;
+      if (row.containsColumn(ModelContainer.MODEL_REPO_FAMILY, ModelContainer.PRODUCTION_READY_KEY)
+          && Boolean.TRUE == row.getMostRecentValue(
+              ModelContainer.MODEL_REPO_FAMILY, ModelContainer.PRODUCTION_READY_KEY)) {
+        isProduction = true;
+      }
+
+      if (isUploaded && (!productionReadyOnly || isProduction)) {
+        validUploadedModels.add(row);
+      }
+    }
+    return validUploadedModels;
+  }
+
+  /**
    * Check that every model in the model repository table is associated with a valid model location
    * in the model repository, i.e. that a valid model artifact is found at the model location.
    *
@@ -724,10 +752,9 @@ public final class KijiModelRepository implements Closeable {
         .add(ModelContainer.MODEL_REPO_FAMILY, ModelContainer.UPLOADED_KEY));
     // Filter out all incomplete models.
     final KijiScannerOptions options = new KijiScannerOptions();
-    options.setKijiRowFilter(KijiModelRepository.UPLOADED_MODEL_FILTER);
     final KijiRowScanner scanner = reader.getScanner(dataRequestBuilder.build(), options);
     try {
-      for (KijiRowData row : scanner) {
+      for (KijiRowData row : getUploadedModels(scanner)) {
         // Proper construction of ModelArtifact requires UPLOADED_KEY.
         final ModelContainer model = new ModelContainer(row,
             Sets.newHashSet(ModelContainer.LOCATION_KEY), mCurrentBaseStorageURI);
@@ -781,17 +808,11 @@ public final class KijiModelRepository implements Closeable {
     // If only the production ready models are required, add the following filter.
     final KijiScannerOptions options = new KijiScannerOptions();
     final KijiRowFilter filters;
-    if (productionReadyOnly) {
-      filters = Filters.and(PRODUCTION_READY_FILTER, KijiModelRepository.UPLOADED_MODEL_FILTER);
-    } else {
-      filters = KijiModelRepository.UPLOADED_MODEL_FILTER;
-    }
-    options.setKijiRowFilter(filters);
 
     // Gather all rows and emit.
     final KijiRowScanner scanner = reader.getScanner(dataRequestBuilder.build(), options);
     try {
-      for (final KijiRowData row : scanner) {
+      for (final KijiRowData row : getUploadedModels(scanner, productionReadyOnly)) {
         setOfModels.add(new ModelContainer(row, fields, mCurrentBaseStorageURI));
       }
     } finally {
