@@ -712,7 +712,7 @@ public final class KijiModelRepository implements Closeable {
       ) throws IOException {
     final List<KijiRowData> validUploadedModels = Lists.newArrayList();
     for (KijiRowData row: scanner) {
-      final boolean isUploaded = row.getMostRecentValue(
+      final Boolean isUploaded = row.getMostRecentValue(
           ModelContainer.MODEL_REPO_FAMILY, ModelContainer.UPLOADED_KEY);
 
       boolean isProduction = false;
