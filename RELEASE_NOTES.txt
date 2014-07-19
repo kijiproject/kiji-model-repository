@@ -1,6 +1,9 @@
 
                               Kiji Model Repository Release Notes
 
+Version 0.11.0
+  * POM-40. Require JDK 7 to compile Kiji projects.
+
 Version 0.2.0
   * KIJIREPO-26. Adds scoring server startup scripts.
   * KIJIREPO-33. Fix some bugs in the parsing of the artifact name.

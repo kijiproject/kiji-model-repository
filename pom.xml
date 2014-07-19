@@ -28,7 +28,7 @@
   <parent>
     <groupId>org.kiji.pom</groupId>
     <artifactId>root-pom</artifactId>
-    <version>1.1.8</version>
+    <version>1.2.0</version>
   </parent>
 
   <name>The Kiji Model Repository top-level project</name>
@@ -64,6 +64,12 @@
   </dependencies>
 
   <build>
+    <plugins>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-enforcer-plugin</artifactId>
+      </plugin>
+    </plugins>
     <pluginManagement>
       <plugins>
 
