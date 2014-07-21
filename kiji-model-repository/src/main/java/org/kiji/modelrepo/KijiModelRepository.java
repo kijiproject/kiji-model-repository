@@ -51,10 +51,8 @@ import org.kiji.schema.KijiRowData;
 import org.kiji.schema.KijiRowScanner;
 import org.kiji.schema.KijiTable;
 import org.kiji.schema.KijiTableReader;
-import org.kiji.schema.KijiTableReader.KijiScannerOptions;
 import org.kiji.schema.KijiURI;
 import org.kiji.schema.avro.TableLayoutDesc;
-import org.kiji.schema.filter.KijiRowFilter;
 import org.kiji.schema.layout.KijiTableLayout;
 import org.kiji.schema.util.ProtocolVersion;
 /**
@@ -751,8 +749,7 @@ public final class KijiModelRepository implements Closeable {
         .add(ModelContainer.MODEL_REPO_FAMILY, ModelContainer.LOCATION_KEY)
         .add(ModelContainer.MODEL_REPO_FAMILY, ModelContainer.UPLOADED_KEY));
     // Filter out all incomplete models.
-    final KijiScannerOptions options = new KijiScannerOptions();
-    final KijiRowScanner scanner = reader.getScanner(dataRequestBuilder.build(), options);
+    final KijiRowScanner scanner = reader.getScanner(dataRequestBuilder.build());
     try {
       for (KijiRowData row : getUploadedModels(scanner)) {
         // Proper construction of ModelArtifact requires UPLOADED_KEY.
@@ -805,12 +802,8 @@ public final class KijiModelRepository implements Closeable {
     }
     dataRequestBuilder.addColumns(columns);
 
-    // If only the production ready models are required, add the following filter.
-    final KijiScannerOptions options = new KijiScannerOptions();
-    final KijiRowFilter filters;
-
     // Gather all rows and emit.
-    final KijiRowScanner scanner = reader.getScanner(dataRequestBuilder.build(), options);
+    final KijiRowScanner scanner = reader.getScanner(dataRequestBuilder.build());
     try {
       for (final KijiRowData row : getUploadedModels(scanner, productionReadyOnly)) {
         setOfModels.add(new ModelContainer(row, fields, mCurrentBaseStorageURI));
